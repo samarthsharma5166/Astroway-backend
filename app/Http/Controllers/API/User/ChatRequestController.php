@@ -80,20 +80,26 @@ class ChatRequestController extends Controller
                         'status' => 400,
                 ], 400);
             }
-        $callDurationMinutesforcharge = $req->call_duration / 60;
-             $astrologerCharge=DB::table('astrologers')->where('id',$req['astrologerId'])->pluck('charge')->first();
-           if($astrologerEmergency){
-              $astrologerCharge=DB::table('astrologers')->where('id',$req['astrologerId'])->pluck('emergency_chat_charge')->first();
-           }
-           $total_charge = $astrologerCharge * $callDurationMinutesforcharge;
-            if ($total_charge > $walletAmount){
-                 return response()->json([
-                    'recordList' => [
-                        'message' => 'Insufficient Wallet Balance',
-                    ],
-                        'status' => 400,
-                ], 400);
+        $duration = $req->chat_duration ?? $req->call_duration ?? 0;
+        $callDurationMinutesforcharge = $duration / 60;
+
+        $astrologerCharge = 0;
+        if (!$req->isFreeSession) {
+            $astrologerCharge=DB::table('astrologers')->where('id',$req['astrologerId'])->pluck('charge')->first();
+            if($astrologerEmergency){
+                $astrologerCharge=DB::table('astrologers')->where('id',$req['astrologerId'])->pluck('emergency_chat_charge')->first();
             }
+        }
+        $total_charge = $astrologerCharge * $callDurationMinutesforcharge;
+
+        if ($total_charge > $walletAmount){
+             return response()->json([
+                'recordList' => [
+                    'message' => 'Insufficient Wallet Balance',
+                ],
+                    'status' => 400,
+            ], 400);
+        }
 
 
             $data = $req->only(

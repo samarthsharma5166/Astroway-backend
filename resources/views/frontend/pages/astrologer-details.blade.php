@@ -426,7 +426,7 @@
                                         </div>
 
                                         @if (authcheck())
-                                        @if ($isFreeAvailable == false)
+                                        @if ($getAstrologer['recordList'][0]['isFreeAvailable'] == false)
                                         <input type="hidden" name="isFreeSession" value="0">
                                         <div class="col-12 py-3">
                                             <div class="form-group mb-0">
@@ -1670,8 +1670,8 @@ initializeAutocomplete('BirthPlace1', 'latitude1', 'longitude1');
                          $walletAmount = authcheck()['totalWalletAmount'];
                     }
                 @endphp
-                var walletAmount = {{ $walletAmount }};
-                var isFreeAvailable = "{{ $isFreeAvailable ?? false }}"; 
+                 var walletAmount = {{ $walletAmount }};
+                 var isFreeAvailable = "{{ $getAstrologer['recordList'][0]['isFreeAvailable'] ?? false }}"; 
 
                 // Set Modal Details
                 $('#req_call_type').val(callType);
