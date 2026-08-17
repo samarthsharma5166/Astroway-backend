@@ -870,8 +870,12 @@ public function addCallRequest(Request $req)
             } else if ($callRequest->call_type == '11') {
                 $call_type = 'video call';
             }
-            if ($req->fromWeb || !$req->channelName || $req->channelName == '') {
-               $req->channelName = 'AstroWayGuru_'.$callRequest->astrologerId.'_'.$req->callId;
+            if ($callRequest->call_method == 'zegocloud') {
+                $req->channelName = (string)$req->callId;
+            } else {
+                if ($req->fromWeb || !$req->channelName || $req->channelName == '') {
+                   $req->channelName = 'AstroWayGuru_'.$callRequest->astrologerId.'_'.$req->callId;
+                }
             }
             
             $astrologer = DB::Table('astrologers')
