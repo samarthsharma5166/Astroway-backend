@@ -28,6 +28,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        if (config('app.url')) {
+            \Illuminate\Support\Facades\URL::forceRootUrl(config('app.url'));
+        }
         Paginator::defaultView('vendor.pagination.simple-tailwind');
 
         View::composer('*', function ($view) {
