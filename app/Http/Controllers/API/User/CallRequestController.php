@@ -900,7 +900,7 @@ public function addCallRequest(Request $req)
                 $req->token = $hmsReponse['auth_token'];
             }
 			 if ($callRequest->call_method == 'zegocloud') {
-                $token = $this->zegoApi->generateToken($req->callId, $req->channelName, $callRequest->call_duration);
+                $token = $this->zegoApi->generateToken($req->callId, $req->callId, $callRequest->call_duration);
                 $req->token = $token;
             }
             if ($callRequest->call_method == 'agora') {

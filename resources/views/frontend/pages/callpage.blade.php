@@ -668,7 +668,7 @@ $call_type = request()->query('call_type');
                 const serverSecret = "{{ systemflag('zegoServerSecret') }}";
                 const userID = "{{ $userId }}";
                 const userName = "{{authcheck()['name']}}";
-                const roomID = document.getElementById('channel').value;
+                const roomID = "{{ $callrequest->id }}";
                 const isVideoCall = "{{ $call_type }}" == "11";
 
                 if (!appID) throw new Error('Zegocloud App ID is missing');
