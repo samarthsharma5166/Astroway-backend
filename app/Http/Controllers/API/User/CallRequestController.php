@@ -870,7 +870,7 @@ public function addCallRequest(Request $req)
             } else if ($callRequest->call_type == '11') {
                 $call_type = 'video call';
             }
-            if ($req->fromWeb) {
+            if ($req->fromWeb || !$req->channelName || $req->channelName == '') {
                $req->channelName = 'AstroWayGuru_'.$callRequest->astrologerId.'_'.$req->callId;
             }
             
