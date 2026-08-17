@@ -997,6 +997,7 @@ public function addCallRequest(Request $req)
             $token = $req->token;
             return response()->json([
                 'token' => $token,
+                'channelName' => $callRequest->channelName,
                 'status' => 200,
             ], 200);
         } catch (\Exception $e) {
