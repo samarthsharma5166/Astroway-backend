@@ -1111,9 +1111,19 @@ class KundaliController extends Controller
 
         $sessionKey = 'dosha_kundali_' . $request->id . '_' . ($request->userId ?? '0') . '_' . ($request->language ?? 'en');
 
-        // Return cached data if available
+        // Return cached data if available (only if it wasn't a 400/402 API error)
         if ($session->has($sessionKey)) {
-            return response()->json($session->get($sessionKey), 200);
+            $cachedData = $session->get($sessionKey);
+            $hasError = false;
+            foreach (['mangalDosh', 'kaalsarpDosh', 'manglikDosh', 'pitraDosh', 'papasamayaDosh'] as $key) {
+                if (isset($cachedData[$key]['status']) && in_array($cachedData[$key]['status'], [400, 402])) {
+                    $hasError = true;
+                    break;
+                }
+            }
+            if (!$hasError) {
+                return response()->json($cachedData, 200);
+            }
         }
 
         $kundali = Kundali::where('id', $request->id)->first();

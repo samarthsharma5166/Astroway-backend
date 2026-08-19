@@ -140,10 +140,20 @@ class KundaliController extends Controller
 
         // Create unique session key based on request parameters
         $sessionKey = 'kundali_report_' . $request->kundali_id . '_' . ($request->lang ?? 'en');
+        $KundaliReport = null;
         if ($session->has($sessionKey)) {
-            $KundaliReport = $session->get($sessionKey);
-        } else {
-            // Make API call if not in session
+            $cachedReport = $session->get($sessionKey);
+            $hasError = (isset($cachedReport['status']) && in_array($cachedReport['status'], [400, 402])) ||
+                         (isset($cachedReport['planet']['status']) && in_array($cachedReport['planet']['status'], [400, 402]));
+            if (!$hasError) {
+                $KundaliReport = $cachedReport;
+            } else {
+                $session->remove($sessionKey);
+            }
+        }
+
+        if (!$KundaliReport) {
+            // Make API call if not in session or if cache was cleared due to error
             $KundaliReport = Http::withoutVerifying()->post(url('/') . '/api/kundali/getKundaliReport', [
                 'kundali_id' => $request->kundali_id,
                 'lang' => $request->lang
