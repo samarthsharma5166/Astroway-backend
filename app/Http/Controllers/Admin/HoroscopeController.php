@@ -28,7 +28,7 @@ class HoroscopeController extends Controller
 
     public function generateDailyHorscope()
     {
-        GenerateDailyHoroscopeJob::dispatch();
+        GenerateDailyHoroscopeJob::dispatchSync();
 
         return response()->json(['message' => 'Daily horoscope generated successfully']);
     }
@@ -39,7 +39,7 @@ class HoroscopeController extends Controller
 
     public function generateWeeklyHorscope()
     {
-        GenerateWeeklyHoroscopeJob::dispatch();
+        GenerateWeeklyHoroscopeJob::dispatchSync();
 
         return response()->json(['message' => 'Weekly horoscope generated successfully']);
     }
@@ -50,7 +50,7 @@ class HoroscopeController extends Controller
 
     public function generateYearlyHorscope()
     {
-        GenerateYearlyHoroscopeJob::dispatch();
+        GenerateYearlyHoroscopeJob::dispatchSync();
 
         return response()->json(['message' => 'Yearly horoscope generated successfully']);
     }
