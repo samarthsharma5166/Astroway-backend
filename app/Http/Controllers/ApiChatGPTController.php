@@ -18,11 +18,16 @@ class ApiChatGPTController extends Controller
     {
         $validated = $request->validate([
             'message' => 'required|string',
-            'astrologerId' => 'required'
+            'astrologerId' => 'required',
+            'image' => 'nullable|string'
         ]);
         
         if (Auth::guard('api')->user()) {
-            $response = $this->apiOpenAIService->askChatGPT($validated['message'], $validated['astrologerId']);
+            $response = $this->apiOpenAIService->askChatGPT(
+                $validated['message'], 
+                $validated['astrologerId'],
+                $request->input('image')
+            );
 
             return response()->json([
                 'message' => $response,

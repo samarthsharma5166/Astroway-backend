@@ -25,7 +25,7 @@ class ApiOpenAIService
         }
     }
 
-    public function askChatGPT($message, $astrologerId)
+    public function askChatGPT($message, $astrologerId, $imageBase64 = null)
     {
         $assistantContent = $this->getAssistantContentBasedOnAstrologer($astrologerId);  // Example function to get dynamic content based on astrologer ID
         $userId = Auth::guard('api')->user()->id;
@@ -36,23 +36,51 @@ class ApiOpenAIService
         $finalMessage = "{$userInfo} {$message}";
 
         try {
+            $payload = [
+                'model' => $imageBase64 ? 'gpt-4o' : 'gpt-4',
+                'temperature' => 0.5,
+                'top_p' => 0.7,
+                'max_tokens' => 500,
+                'frequency_penalty' => 0,
+                'presence_penalty' => 0,
+            ];
+
+            if ($imageBase64) {
+                // strip out metadata scheme if present
+                if (preg_match('/^data:image\/(\w+);base64,/', $imageBase64, $type)) {
+                    $imageBase64 = substr($imageBase64, strpos($imageBase64, ',') + 1);
+                }
+                $payload['messages'] = [
+                    ['role' => 'system', 'content' => $assistantContent],
+                    [
+                        'role' => 'user',
+                        'content' => [
+                            [
+                                'type' => 'text',
+                                'text' => $finalMessage
+                            ],
+                            [
+                                'type' => 'image_url',
+                                'image_url' => [
+                                    'url' => 'data:image/jpeg;base64,' . $imageBase64
+                                ]
+                            ]
+                        ]
+                    ]
+                ];
+            } else {
+                $payload['messages'] = [
+                    ['role' => 'system', 'content' => $assistantContent],
+                    ['role' => 'user', 'content' => $finalMessage],
+                ];
+            }
+
             $response = $this->client->post('https://api.openai.com/v1/chat/completions', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $this->apiKey,
                     'Content-Type' => 'application/json',
                 ],
-                'json' => [
-                    'model' => 'gpt-4',
-                    'messages' => [
-                        ['role' => 'system', 'content' => $assistantContent],
-                        ['role' => 'user', 'content' => $finalMessage],
-                    ],
-                    'max_tokens' => 500,
-                    'temperature' => 0.5,
-                    'top_p' => 0.7,
-                    'frequency_penalty' => 0,
-                    'presence_penalty' => 0,
-                ],
+                'json' => $payload,
             ]);
 
             $data = json_decode($response->getBody(), true);
