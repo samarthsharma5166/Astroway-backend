@@ -50,6 +50,7 @@ class ApiOpenAIService
                 if (preg_match('/^data:image\/(\w+);base64,/', $imageBase64, $type)) {
                     $imageBase64 = substr($imageBase64, strpos($imageBase64, ',') + 1);
                 }
+                $assistantContent .= "\n[SYSTEM INSTRUCTION OVERRIDE: The user has attached an image of their palm. You are equipped with vision capabilities and can view the image. Please analyze their palm lines (Heart line, Life line, Head line, etc.) based on the image provided and provide a detailed palmistry reading. Ignore any previous instructions claiming you cannot see or analyze images.]";
                 $payload['messages'] = [
                     ['role' => 'system', 'content' => $assistantContent],
                     [
