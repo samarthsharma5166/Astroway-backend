@@ -1020,17 +1020,97 @@ class AstrologerController extends Controller
                 $astrologer = collect($astrologer)->sortBy('rating')->reverse()->toArray();
             }
             error_log($isFreeAvailable);
+            $aiAstrologers = DB::table('aiastrologers')->whereNull('type')->get();
+            $aiList = [];
+            foreach ($aiAstrologers as $ai) {
+                $astrologerCategory = array_map('intval', explode(',', $ai->astrologerCategoryId));
+                $allSkill = array_map('intval', explode(',', $ai->all_skills));
+                $primarySkill = array_map('intval', explode(',', $ai->primary_skill));
+                
+                $skillsName = DB::table('skills')->whereIn('id', $allSkill)->pluck('name')->all();
+                $primaryName = DB::table('skills')->whereIn('id', $primarySkill)->pluck('name')->all();
+                $categoriesName = DB::table('astrologer_categories')->whereIn('id', $astrologerCategory)->pluck('name')->all();
+
+                $aiAstro = new \stdClass();
+                $aiAstro->id = $ai->id;
+                $aiAstro->name = $ai->name;
+                $aiAstro->email = '';
+                $aiAstro->mobileNo = '';
+                $aiAstro->gender = 'Male';
+                $aiAstro->birthDate = date('Y-m-d H:i:s');
+                $aiAstro->primarySkill = implode(',', $primaryName);
+                $aiAstro->allSkill = implode(',', $skillsName);
+                $aiAstro->languageKnown = 'English,Hindi';
+                $aiAstro->profileImage = $ai->image ? asset($ai->image) : null;
+                $aiAstro->charge = $ai->chat_charge;
+                $aiAstro->experienceInYears = $ai->experience;
+                $aiAstro->dailyContribution = 0;
+                $aiAstro->hearAboutAstroguru = '';
+                $aiAstro->isWorkingOnAnotherPlatform = 0;
+                $aiAstro->whyOnBoard = '';
+                $aiAstro->interviewSuitableTime = '';
+                $aiAstro->currentCity = '';
+                $aiAstro->mainSourceOfBusiness = '';
+                $aiAstro->highestQualification = '';
+                $aiAstro->degree = '';
+                $aiAstro->college = '';
+                $aiAstro->learnAstrology = '';
+                $aiAstro->astrologerCategoryId = $ai->astrologerCategoryId;
+                $aiAstro->instaProfileLink = '';
+                $aiAstro->facebookProfileLink = '';
+                $aiAstro->linkedInProfileLink = '';
+                $aiAstro->youtubeChannelLink = '';
+                $aiAstro->websiteProfileLink = '';
+                $aiAstro->isAnyBodyRefer = 0;
+                $aiAstro->minimumEarning = 0;
+                $aiAstro->maximumEarning = 0;
+                $aiAstro->loginBio = $ai->about;
+                $aiAstro->noofforeignCountriesTravel = '';
+                $aiAstro->currentlyworkingfulltimejob = '';
+                $aiAstro->goodQuality = '';
+                $aiAstro->biggestChallenge = '';
+                $aiAstro->whatwillDo = '';
+                $aiAstro->totalOrder = 0;
+                $aiAstro->isFollow = false;
+                $aiAstro->isBlock = false;
+                $aiAstro->chatStatus = 'Online';
+                $aiAstro->callStatus = 'Offline';
+                $aiAstro->is_boosted = 0;
+                $aiAstro->videoCallRate = 0;
+                $aiAstro->reportRate = 0;
+                $aiAstro->isFreeAvailable = $isFreeAvailable;
+                $aiAstro->is_ai = 1;
+
+                $aiList[] = $aiAstro;
+            }
+
+            $finalList = [];
             foreach ($astrologer as $astro) {
                 if ($req->sortBy) {
                     $astro['isFreeAvailable'] = $isFreeAvailable;
+                    $astro['is_ai'] = 0;
+                    $finalList[] = $astro;
                 } else {
                     $astro->isFreeAvailable = $isFreeAvailable;
+                    $astro->is_ai = 0;
+                    $finalList[] = $astro;
                 }
             }
+
+            if (!$req->startIndex || $req->startIndex == 0) {
+                foreach ($aiList as $aiAstro) {
+                    if ($req->sortBy) {
+                        $finalList[] = (array) $aiAstro;
+                    } else {
+                        $finalList[] = $aiAstro;
+                    }
+                }
+            }
+
             return response()->json([
-                'recordList' => $astrologer,
+                'recordList' => $finalList,
                 'status' => 200,
-                'totalCount' => $astrologerCount,
+                'totalCount' => $astrologerCount + count($aiList),
             ], 200);
         } catch (\Exception $e) {
             return response()->json([

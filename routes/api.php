@@ -117,6 +117,7 @@ Route::get('check-user-balance-api',[ApiMasterAiChatBotController::class, 'check
 Route::get('master-chat-page-api',[ApiMasterAiChatBotController::class, 'masterChatPageApi'])->name('master.chat.page.api');
 Route::post('/store-master-ai-chat-history-api', [ApiMasterAiChatBotController::class, 'storeMasterAiChatHistoryApi'])->name('store.master.ai.chat.history.api');
 Route::post('/ask-master', [ApiChatGPTController::class, 'askMaster'])->name('ask.master');
+Route::post('/ask-ai', [ApiChatGPTController::class, 'ask'])->name('ask.ai');
 
 //================================================================ai-astrologer================================================================
 
