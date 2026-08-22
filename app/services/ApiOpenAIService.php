@@ -57,9 +57,8 @@ class ApiOpenAIService
 
             $data = json_decode($response->getBody(), true);
             $content = $data['choices'][0]['message']['content'];
-            $content = $this->stopAtLastPeriod($content);
-
-            return $content;
+ 
+            return trim($content);
         } catch (RequestException $e) {
             if ($e->getCode() == 429) {
                 $attempts++;

@@ -1060,6 +1060,7 @@ class AstrologerController extends Controller
                 $aiAstro->college = '';
                 $aiAstro->learnAstrology = '';
                 $aiAstro->astrologerCategoryId = $ai->astrologerCategoryId;
+                $aiAstro->astrologerCategory = implode(',', $categoriesName);
                 $aiAstro->instaProfileLink = '';
                 $aiAstro->facebookProfileLink = '';
                 $aiAstro->linkedInProfileLink = '';
