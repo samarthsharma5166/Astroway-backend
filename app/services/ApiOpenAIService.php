@@ -47,7 +47,7 @@ class ApiOpenAIService
                         ['role' => 'system', 'content' => $assistantContent],
                         ['role' => 'user', 'content' => $finalMessage],
                     ],
-                    'max_tokens' => 200,
+                    'max_tokens' => 500,
                     'temperature' => 0.5,
                     'top_p' => 0.7,
                     'frequency_penalty' => 0,
@@ -109,7 +109,7 @@ class ApiOpenAIService
                     ],
                     'temperature' => 0.2,
                     'top_p' => 0.5,
-                    'max_tokens' => 120,
+                    'max_tokens' => 500,
                 ],
             ]);
 
