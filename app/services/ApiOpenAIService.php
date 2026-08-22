@@ -27,9 +27,11 @@ class ApiOpenAIService
 
     public function askChatGPT($message, $astrologerId, $imageBase64 = null)
     {
-        $assistantContent = $this->getAssistantContentBasedOnAstrologer($astrologerId);  // Example function to get dynamic content based on astrologer ID
+        $assistantContent = $this->getAssistantContentBasedOnAstrologer($astrologerId);
         $userId = Auth::guard('api')->user()->id;
         $user = User::where('id', $userId)->select(['name', 'birthDate', 'birthPlace'])->first();
+
+        $assistantContent .= "\n[CRITICAL CHAT STYLE INSTRUCTION: You must respond exactly like a warm, empathetic, human Indian astrologer chatting on a messaging app. Do NOT sound like an AI assistant. Never mention being an AI, chatbot, language model, or computer. Do NOT use structured bullet points, numbered lists, markdown titles, or formatted dividers. Respond in a natural, fluid paragraph style, just like a person typing in a chat room. Keep your tone reassuring, personal, and authentic.]";
 
         // Format the user data into the message
         $userInfo = "mera name {$user->name}, mera date of birth {$user->birthDate}, aur mera place of birth is {$user->birthPlace}.";
