@@ -1042,7 +1042,11 @@ class AstrologerController extends Controller
                 $aiAstro->allSkill = implode(',', $skillsName);
                 $aiAstro->languageKnown = 'English,Hindi';
                 $aiAstro->profileImage = $ai->image ? asset($ai->image) : null;
-                $aiAstro->charge = $ai->chat_charge;
+                $aiAstro->charge = $ai->chat_charge ?? 0;
+                $aiAstro->isDiscountedPrice = 0;
+                $aiAstro->chat_discounted_rate = $ai->chat_charge ?? 0;
+                $aiAstro->audio_discounted_rate = 0;
+                $aiAstro->video_discounted_rate = 0;
                 $aiAstro->experienceInYears = $ai->experience;
                 $aiAstro->dailyContribution = 0;
                 $aiAstro->hearAboutAstroguru = '';
