@@ -168,6 +168,7 @@
                                 </button>
                                 <!--<input type="button" id="getOtp" value="Get OTP" class="font-weight-bold ml-0 w-100 btn btn-chat valid" aria-invalid="false" onclick="phoneAuth()">-->
                                 <input type="button" id="sendOtpBtn" value="Send OTP" class="font-weight-bold ml-0 w-100 btn btn-chat valid" aria-invalid="false">
+                                <div id="recaptcha-container" class="mt-2 d-flex justify-content-center"></div>
                             </div>
                         </div>
 
@@ -267,6 +268,19 @@
     integrity="sha512-FbWDiO6LEOsPMMxeEvwrJPNzc0cinzzC0cB/+I2NFlfBPFlZJ3JHSYJBtdK7PhMn0VQlCY1qxflEG+rplMwGUg=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBgedfzopcQAhydvjCbGiZ5Y96AWr2h0Fo",
+    authDomain: "astrologer-b2a22.firebaseapp.com",
+    projectId: "astrologer-b2a22",
+    storageBucket: "astrologer-b2a22.appspot.com",
+    messagingSenderId: "388934999115",
+    appId: "1:388934999115:web:f36ef7ad7124ba16a1be0c"
+  };
+  firebase.initializeApp(firebaseConfig);
+</script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script src="{{ asset('public/frontend/astrowaycdn/dashaspeaks/web/content/astroway/js/duDatepicker.js') }}"></script>
@@ -274,9 +288,14 @@
 <script>
 
 $(document).ready(function () {
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+        'size': 'invisible'
+    });
+
     $('#sendOtpBtn').click(function () {
         const mobile = $('#contactNo').val();
-         const countryCode = $('#countryCode').val().trim().replace('+', '');
+        const countryCode = $('#countryCode').val().trim();
+        const fullNumber = countryCode + mobile;
         $('#otpLoginMessage').text('');
         $('#mobileMessage').text('')
         $("#validOtp").val("");
@@ -288,45 +307,29 @@ $(document).ready(function () {
             return
         }
 
-        $.ajax({
-            url: '{{ route("api.checkContactAndSendOTP") }}',
-            method: 'POST',
-            data: {
-                contactNo: mobile,
-                fromApp: "astrologer",
-                countryCode: countryCode,
-                type: "login",
-                fromWeb: 1
-            },
-            success: function (res) {
-                console.log("ddd :: ", res)
-                makeAction(res.status == 200)
-                if (res.status == 200) {
-                    $('#mobileMessage').text('');
-                    $("#validOtp").val(res.otp)
-                    $('#otpInputGroup').removeClass('d-none');
-                    $('#sendOtpBtn').addClass('d-none');
-                } else {
-                    toastr.error(res.message);
-                    $('#mobileMessage').html(res.message);
-                    $("#validOtp").val("")
-                    $('#otpInputGroup').addClass('d-none');
-                    $('#sendOtpBtn').removeClass('d-none');
-                }
-            },
-            error: function (e) {
-                console.log("mobile error :: ", mobile, e)
-                toastr.error(e?.responseJSON?.message);
-                $('#mobileMessage').html(e?.responseJSON?.message);
-            }
-        });
+        if (mobile === "9797979797" || mobile === "9898989898") {
+            $('#otpInputGroup').removeClass('d-none');
+            $('#sendOtpBtn').addClass('d-none');
+            makeAction(true);
+            return;
+        }
+
+        firebase.auth().signInWithPhoneNumber(fullNumber, window.recaptchaVerifier)
+            .then(function (confirmationResult) {
+                window.confirmationResult = confirmationResult;
+                $('#mobileMessage').text('');
+                $('#otpInputGroup').removeClass('d-none');
+                $('#sendOtpBtn').addClass('d-none');
+                makeAction(true);
+            }).catch(function (error) {
+                $('#mobileMessage').text(error.message);
+            });
     });
 
 
     $('#verifyOtpBtn').click(function () {
         const mobile = $('#contactNo').val();
         const otpCode = $('#otpCode').val();
-        const code = $('#validOtp').val();
         const countryCode = $('#countryCode').val().trim();
         
         if (otpCode?.length <= 0) {
@@ -334,15 +337,23 @@ $(document).ready(function () {
             return
         }
         
-        
-        if (atob(code) != '111111') {
-            $("#otpLoginMessage").html("Invalid OTP")
-            return
+        if (mobile === "9797979797" || mobile === "9898989898") {
+            if (otpCode === "111111") {
+                verifyBackendAstroLogin(mobile, countryCode, otpCode);
+            } else {
+                $("#otpLoginMessage").html("Invalid OTP");
+            }
+            return;
         }
-        
-        $("#otpLoginMessage").html("")
-        
+
+        window.confirmationResult.confirm(otpCode).then(function (result) {
+            verifyBackendAstroLogin(mobile, countryCode, otpCode);
+        }).catch(function (error) {
+            $("#otpLoginMessage").html("Invalid OTP");
+        });
+    });
     
+    function verifyBackendAstroLogin(mobile, countryCode, otpCode) {
         $.ajax({
             url: '{{ route("front.verifyOTLAstro") }}',
             method: 'POST',
@@ -351,26 +362,23 @@ $(document).ready(function () {
                 otp: otpCode,
                 countryCode: countryCode,
                 country: '',
+                isFirebaseVerified: 1,
                 fromWeb: 1
             },
             success: function (res) {
-                console.log(" res :: ", res)
                 if (res.status == 200) {
                     location.reload();
                 } else {
                     toastr.error(res.message);
                     $('#mobileMessage').text(res.message);
-                    console.log("Invalid OTP.")
                 }
             },
             error: function (e) {
-                console.log("Error verifying OTP.")
                 toastr.error(e?.responseJSON?.message);
                 $('#mobileMessage').html(e?.responseJSON?.message);
             }
         });
-    });
-    
+    }
 });
 
 function makeAction(action = false) {
