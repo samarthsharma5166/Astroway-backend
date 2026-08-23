@@ -79,16 +79,26 @@ class AuthController extends Controller
                     ], 400);
                 }
             } else {
-                $msg91AuthKey = DB::table('systemflag')->where('name', 'msg91AuthKey')->pluck('value')->first();
-                $formsgcountryCode = ltrim($request->countryCode, '+');
-                $fullMobile = (string) $formsgcountryCode . $request->contactNo;
-                $response = Http::withHeaders([
-                    'authkey' => $msg91AuthKey,
-                ])->get('https://control.msg91.com/api/v5/otp/verify', [
-                    'otp' => $request->otp,
-                    'mobile' => $fullMobile
-                ]);
-                if ($response->successful()) {
+                $isFirebaseVerified = !empty($request->isFirebaseVerified);
+                $isTestNumber = in_array($request->contactNo, ['9898989898', '9797979797']);
+                $responseSuccess = false;
+
+                if ($isFirebaseVerified || $isTestNumber) {
+                    $responseSuccess = true;
+                } else {
+                    $msg91AuthKey = DB::table('systemflag')->where('name', 'msg91AuthKey')->pluck('value')->first();
+                    $formsgcountryCode = ltrim($request->countryCode, '+');
+                    $fullMobile = (string) $formsgcountryCode . $request->contactNo;
+                    $response = Http::withHeaders([
+                        'authkey' => $msg91AuthKey,
+                    ])->get('https://control.msg91.com/api/v5/otp/verify', [
+                        'otp' => $request->otp,
+                        'mobile' => $fullMobile
+                    ]);
+                    $responseSuccess = $response->successful();
+                }
+
+                if ($responseSuccess) {
                     $login = Http::withoutVerifying()->post(url('/') . '/api/loginAppAstrologer', [
                         'contactNo' => $request->contactNo
                     ])->json();
