@@ -743,9 +743,53 @@ $(document).ready(function() {
       pointer-events:none;
     }
 
+    /* Overlay the transparent header on top of the banner */
+    nav.navbar.navbar-expand-lg.navbar-light.top-navbar {
+        background: transparent !important;
+        position: absolute !important;
+        width: 100%;
+        top: 0;
+        left: 0;
+        z-index: 999;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+    }
+    
+    .top-navbar .nav-link, 
+    .top-navbar .btn-link, 
+    .top-navbar .astroway-logo-text,
+    .top-navbar .navbar-brand,
+    .top-navbar .astroway-logo-ntext,
+    .top-navbar span {
+        color: #ffffff !important;
+    }
+    
+    .top-navbar .astroway-logo-subtext {
+        color: rgba(255, 255, 255, 0.6) !important;
+    }
+
+    /* Style the second category menu navbar to also be transparent with white text */
+    nav.navbar.navbar-expand-lg.navbar-light:not(.top-navbar) {
+        background: transparent !important;
+        position: absolute !important;
+        width: 100%;
+        top: 60px; /* Sits right under top navbar */
+        left: 0;
+        z-index: 998;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+    }
+    
+    nav.navbar.navbar-expand-lg.navbar-light:not(.top-navbar) .nav-link,
+    nav.navbar.navbar-expand-lg.navbar-light:not(.top-navbar) a {
+        color: #ffffff !important;
+    }
+    
+    nav.navbar.navbar-expand-lg.navbar-light:not(.top-navbar) .dropdown-menu a {
+        color: #333333 !important; /* Keep dropdown item text dark so it is readable */
+    }
+
     /* content container */
     .banner__content{
-      position:relative;z-index:2;padding:2rem;max-width:1200px;width:100%;display:flex;align-items:center;gap:2rem;
+      position:relative;z-index:2;padding:12rem 2rem 2rem 2rem;max-width:1200px;width:100%;display:flex;align-items:center;gap:2rem;
       flex-wrap:wrap;justify-content:flex-start;
     }
 
@@ -795,8 +839,91 @@ $(document).ready(function() {
     @media (prefers-reduced-motion: reduce){
       .banner__bg, .cta{animation:none}
     }
+
+    @keyframes spinZodiac {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    .spinning-zodiac text {
+      font-family: Arial, sans-serif;
+    }
   </style>
 
+  <!-- PREMIUM HERO BANNER -->
+  <div class="banner">
+      <div class="banner__bg"></div>
+      <div class="banner__overlay"></div>
+      <div class="banner__content">
+          <!-- Left Side: Content & Actions -->
+          <div class="banner__text anim-slide-up">
+              <span class="badge badge-warning text-dark font-weight-bold px-3 py-2 mb-3 rounded-pill" style="background-color: #ffb400; font-size: 13px;">
+                  ✨ First Session with Astrologer is <strong class="text-uppercase">Free!</strong>
+              </span>
+              <h1 class="font-weight-bold mb-3" style="font-size: 3rem; line-height: 1.2;">
+                  Talk to <span style="background: linear-gradient(90deg, #ff7e5f, #feb47b, #86a3ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Astrologers</span><br>right now.
+              </h1>
+              <p class="lead mb-4 text-white-50" style="font-size: 1.1rem; line-height: 1.6;">
+                  Connect with verified experts online. Get instant and accurate guidance for career, marriage, love, and finance from India's best astrologers.
+              </p>
+              
+              <div class="d-flex flex-wrap align-items-center mb-4" style="gap: 15px;">
+                  <a href="{{ route('front.chatList') }}" class="cta d-inline-flex flex-column align-items-center justify-content-center text-dark" style="background-color: #ffb400; border-radius: 12px; padding: 12px 28px; text-decoration: none; font-weight: bold; min-width: 200px;">
+                      <span>💬 Chat with Astrologer</span>
+                      <small class="font-weight-normal text-muted" style="font-size: 11px;">First session free</small>
+                  </a>
+                  <a href="{{ route('front.talkList') }}" class="cta d-inline-flex flex-column align-items-center justify-content-center bg-white text-dark" style="border-radius: 12px; padding: 12px 28px; text-decoration: none; font-weight: bold; min-width: 200px; margin-left: 15px;">
+                      <span>📞 Call with Astrologer</span>
+                      <small class="font-weight-normal text-muted" style="font-size: 11px;">Talk to experts instantly</small>
+                  </a>
+              </div>
+              
+              <div class="d-flex align-items-center text-white-50 font-13" style="gap: 20px;">
+                  <span><i class="fa fa-users text-warning mr-1"></i> 100% Private</span>
+                  <span><i class="fa-solid fa-circle-check text-success mr-1"></i> Verified Experts</span>
+                  <span><i class="fa-solid fa-shield text-info mr-1"></i> Safe Payments</span>
+              </div>
+          </div>
+
+          <!-- Right Side: Rotating Zodiac Ring & Kundli Card -->
+          <div class="banner__card anim-fade-in text-center p-3 rounded-lg" style="background: rgba(255,255,255,0.08); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+              <div class="zodiac-outer-ring" style="position: relative; width: 280px; height: 280px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                  <!-- Spinning Zodiac SVG Ring -->
+                  <svg class="spinning-zodiac" viewBox="0 0 100 100" style="position: absolute; width: 100%; height: 100%; animation: spinZodiac 40s linear infinite;">
+                      <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5" />
+                      <text x="50" y="10" fill="rgba(255,255,255,0.6)" font-size="6" text-anchor="middle">♈</text>
+                      <text x="70" y="16" fill="rgba(255,255,255,0.6)" font-size="6" text-anchor="middle">♉</text>
+                      <text x="84" y="30" fill="rgba(255,255,255,0.6)" font-size="6" text-anchor="middle">♊</text>
+                      <text x="90" y="50" fill="rgba(255,255,255,0.6)" font-size="6" text-anchor="middle">♋</text>
+                      <text x="84" y="70" fill="rgba(255,255,255,0.6)" font-size="6" text-anchor="middle">♌</text>
+                      <text x="70" y="84" fill="rgba(255,255,255,0.6)" font-size="6" text-anchor="middle">♍</text>
+                      <text x="50" y="90" fill="rgba(255,255,255,0.6)" font-size="6" text-anchor="middle">♎</text>
+                      <text x="30" y="84" fill="rgba(255,255,255,0.6)" font-size="6" text-anchor="middle">♏</text>
+                      <text x="16" y="70" fill="rgba(255,255,255,0.6)" font-size="6" text-anchor="middle">♐</text>
+                      <text x="10" y="50" fill="rgba(255,255,255,0.6)" font-size="6" text-anchor="middle">♑</text>
+                      <text x="16" y="30" fill="rgba(255,255,255,0.6)" font-size="6" text-anchor="middle">♒</text>
+                      <text x="30" y="16" fill="rgba(255,255,255,0.6)" font-size="6" text-anchor="middle">♓</text>
+                  </svg>
+                  
+                  <!-- Inner Kundli Promotion Card (Pandit Image) -->
+                  <div class="inner-promotion-card" style="position: absolute; width: 170px; height: 170px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                      <a href="{{ route('front.getkundali') }}">
+                          <img src="{{ asset('public/frontend/homeimage/home-analyze.png') }}" style="width: 100%; height: 100%; object-fit: cover;" alt="Analyze Kundli">
+                      </a>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <!-- STATS COUNTER TICKER -->
+  <div class="stats-ticker w-100 text-white py-3 border-top border-bottom" style="background-color: #0b0f19; border-color: rgba(255,255,255,0.1) !important; margin-bottom: 2rem;">
+      <div class="container d-flex flex-wrap justify-content-between align-items-center text-center">
+          <div class="ticker-item px-3 py-1 font-14"><i class="fa fa-users text-warning mr-2"></i> <strong>48,726+</strong> Astrologers online</div>
+          <div class="ticker-item px-3 py-1 font-14"><i class="fa-solid fa-heart text-danger mr-2"></i> <strong>120.2 Million+</strong> Customers trust Astroway</div>
+          <div class="ticker-item px-3 py-1 font-14"><i class="fa-solid fa-clock text-info mr-2"></i> Available <strong>24x7</strong> round the clock</div>
+      </div>
+  </div>
 
   <div class="container my-5 mt-5">
             <div class="row g-4">
