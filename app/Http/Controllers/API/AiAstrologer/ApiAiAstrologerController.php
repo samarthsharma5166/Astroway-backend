@@ -43,16 +43,14 @@ class ApiAiAstrologerController extends Controller
                     return $astro;
                 });
 
-                $isFreeChat = DB::table('systemflag')->where('name', 'FirstFreeChat')->select('value')->first(); // 1
-                $isFreeAvailable=true;
+                $isFreeChat = DB::table('systemflag')->where('name', 'FirstFreeChat')->select('value')->first();
+                $isFreeAvailable = true;
                 if ($isFreeChat->value == 1) {
                     if ($userId) {
-                        $isChatRequest = DB::table('ai_chat_histories')->where('user_id', $userId)->first();
-                        if ($isChatRequest) {
-                            $isFreeAvailable = false;
-                        } else {
-                            $isFreeAvailable = true;
-                        }
+                        $isChatRequest = DB::table('chatrequest')->where('userId', $userId)->where('chatStatus', '=', 'Completed')->first();
+                        $isCallRequest = DB::table('callrequest')->where('userId', $userId)->where('callStatus', '=', 'Completed')->first();
+                        $isAiChatRequest = DB::table('ai_chat_histories')->where('user_id', $userId)->first();
+                        $isFreeAvailable = !($isChatRequest || $isCallRequest || $isAiChatRequest);
                     }
                 } else {
                     $isFreeAvailable = false;
@@ -89,9 +87,17 @@ class ApiAiAstrologerController extends Controller
             $wallets                    = DB::table('user_wallets')->where('userId', $userId)->first();
             $walletAmount               = $wallets ? (float) $wallets->amount : 0; 
             
-            $isChatRequest              = DB::table('ai_chat_histories')->where('user_id', $userId)->first();
-            
-            if($isChatRequest == null){
+            $isChatRequest = DB::table('chatrequest')->where('userId', $userId)->where('chatStatus', '=', 'Completed')->first();
+            $isCallRequest = DB::table('callrequest')->where('userId', $userId)->where('callStatus', '=', 'Completed')->first();
+            $isAiChatRequest = DB::table('ai_chat_histories')->where('user_id', $userId)->first();
+
+            $isFreeAvailable = false;
+            $isFreeChat = DB::table('systemflag')->where('name', 'FirstFreeChat')->select('value')->first();
+            if ($isFreeChat->value == 1) {
+                $isFreeAvailable = !($isChatRequest || $isCallRequest || $isAiChatRequest);
+            }
+
+            if($isFreeAvailable){
                 return response()->json([
                     'message'           => 'Please wait for a second!',
                     'userId'            =>$userId,
@@ -163,9 +169,20 @@ class ApiAiAstrologerController extends Controller
             $actualDurationInSeconds    = $request->actualDuration;
             $deduction                  = ceil($actualDurationInSeconds / 60); 
             $deductionAmount            = $deduction * $aiAstrologer->chat_charge; 
-            $isFree                     = DB::table('ai_chat_histories')->where('user_id', authcheck()['id'])->first();
-            
-            if(!empty($isFree)){
+            $isChatRequest = DB::table('chatrequest')->where('userId', authcheck()['id'])->where('chatStatus', '=', 'Completed')->first();
+            $isCallRequest = DB::table('callrequest')->where('userId', authcheck()['id'])->where('chatStatus', '=', 'Completed')->first();
+            $isAiChatRequest = DB::table('ai_chat_histories')->where('user_id', authcheck()['id'])->first();
+
+            $isFreeAvailable = false;
+            $isFreeChat = DB::table('systemflag')->where('name', 'FirstFreeChat')->select('value')->first();
+            if ($isFreeChat->value == 1) {
+                $isFreeAvailable = !($isChatRequest || $isCallRequest || $isAiChatRequest);
+            }
+
+            $deduction = ceil($actualDurationInSeconds / 60); 
+            $deductionAmount = $isFreeAvailable ? 0 : ($deduction * $aiAstrologer->chat_charge);
+
+            if(!$isFreeAvailable){
                 $aiChatHistory = AiChatHistory::create([
                     'user_id'           => authcheck()['id'],
                     'ai_astrologer_id'  => $request->astrologer_id,
@@ -177,11 +194,9 @@ class ApiAiAstrologerController extends Controller
                     'created_at'        => now(),
                     'updated_at'        => now(),
                     'inr_usd_conversion_rate'=>$inr_usd_conv_rate->value,
-                    
                 ]);
                 $wallet_deduction = UserWallet::where('userId', authcheck()['id'])->first();
                 if ($wallet_deduction) {
-                    // $wallet_deduction->amount -= ($user_country) ? ($deductionAmount * $inr_usd_conv_rate->value) : $deductionAmount;
                     $wallet_deduction->amount -= $deductionAmount;
                     $wallet_deduction->save();
                 } else {
@@ -190,38 +205,20 @@ class ApiAiAstrologerController extends Controller
                         'status'        => 404,
                         ], 404);
                 }
-                
-                // $wallet_deduction = UserWallet::where('userId', authcheck()['id'])->first();
-                // if ($wallet_deduction) {
-                //     $wallet_deduction->amount -= $deductionAmount;
-                //     $wallet_deduction->save(); 
-                // } else {
-                //     return response()->json(['error' => 'Wallet not found.'], 404);
-                // }
             }else{
                 $aiChatHistory = AiChatHistory::create([
                     'user_id'           => authcheck()['id'],
                     'ai_astrologer_id'  => $request->astrologer_id,
                     'chat_duration'     => $request->actualDuration,
-                    // 'chat_min'       => $request->chatMin,
+                    'chat_min'          => $request->chatDuration,
                     'chat_rate'         => $aiAstrologer->chat_charge,
-                    'is_free'           => 0,
-                    // 'deduction'      => $deduction,
+                    'deduction'         => 0,
+                    'is_free'           => 1,
                     'created_at'        => now(),
                     'updated_at'        => now(),
+                    'inr_usd_conversion_rate'=>$inr_usd_conv_rate->value,
                 ]);
-                
                 $wallet_deduction = UserWallet::where('userId', authcheck()['id'])->first();
-                if ($wallet_deduction) {
-                    // $wallet_deduction->amount -= ($user_country) ? ($deductionAmount * $inr_usd_conv_rate->value) : $deductionAmount;
-                    $wallet_deduction->amount -= $deductionAmount; 
-                    $wallet_deduction->save(); 
-                } else {
-                    return response()->json([
-                        'message'       => 'Wallet not found.',
-                        'status'        => 404,
-                        ], 404);
-                }
             }
             
             return response()->json([

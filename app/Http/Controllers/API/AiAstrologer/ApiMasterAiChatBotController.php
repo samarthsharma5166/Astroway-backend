@@ -87,7 +87,18 @@ class ApiMasterAiChatBotController extends Controller
                         'recordList' => $userDetails
                     ], 400);
                 }else{
-                    if($astrologer->chat_charge == null){
+                    $isFreeAvailable = true;
+                    $isFreeChat = DB::table('systemflag')->where('name', 'FirstFreeChat')->select('value')->first();
+                    if ($isFreeChat->value == 1) {
+                        $isChatRequest = DB::table('chatrequest')->where('userId', $userId)->where('chatStatus', '=', 'Completed')->first();
+                        $isCallRequest = DB::table('callrequest')->where('userId', $userId)->where('callStatus', '=', 'Completed')->first();
+                        $isAiChatRequest = DB::table('ai_chat_histories')->where('user_id', $userId)->first();
+                        $isFreeAvailable = !($isChatRequest || $isCallRequest || $isAiChatRequest);
+                    } else {
+                        $isFreeAvailable = false;
+                    }
+
+                    if($astrologer->chat_charge == null || $isFreeAvailable){
                         return response()->json([
                             'message'   => 'This chat is free.',
                             'status' => 200,
