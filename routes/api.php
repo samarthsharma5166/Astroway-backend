@@ -118,6 +118,8 @@ Route::get('master-chat-page-api',[ApiMasterAiChatBotController::class, 'masterC
 Route::post('/store-master-ai-chat-history-api', [ApiMasterAiChatBotController::class, 'storeMasterAiChatHistoryApi'])->name('store.master.ai.chat.history.api');
 Route::post('/ask-master', [ApiChatGPTController::class, 'askMaster'])->name('ask.master');
 Route::post('/ask-ai', [ApiChatGPTController::class, 'ask'])->name('ask.ai');
+Route::post('/ai-chat/active-session', [ApiChatGPTController::class, 'getActiveSession'])->name('ai.chat.active_session');
+Route::post('/ai-chat/exit', [ApiChatGPTController::class, 'exitSession'])->name('ai.chat.exit');
 
 //================================================================ai-astrologer================================================================
 

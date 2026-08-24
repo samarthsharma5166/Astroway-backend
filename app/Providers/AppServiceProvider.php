@@ -34,6 +34,29 @@ class AppServiceProvider extends ServiceProvider
                 \Illuminate\Support\Facades\URL::forceScheme('https');
             }
         }
+
+        if (!\Illuminate\Support\Facades\Schema::hasTable('ai_conversations')) {
+            \Illuminate\Support\Facades\Schema::create('ai_conversations', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->string('conversation_id')->unique();
+                $table->unsignedBigInteger('user_id');
+                $table->unsignedBigInteger('ai_astrologer_id');
+                $table->string('status')->default('active'); // active, closed
+                $table->timestamps();
+            });
+        }
+
+        if (!\Illuminate\Support\Facades\Schema::hasTable('ai_messages')) {
+            \Illuminate\Support\Facades\Schema::create('ai_messages', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->string('conversation_id');
+                $table->string('role'); // user, assistant
+                $table->text('content');
+                $table->text('image')->nullable();
+                $table->timestamps();
+            });
+        }
+
         Paginator::defaultView('vendor.pagination.simple-tailwind');
 
         View::composer('*', function ($view) {

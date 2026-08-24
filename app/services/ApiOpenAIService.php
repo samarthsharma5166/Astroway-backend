@@ -29,7 +29,6 @@ class ApiOpenAIService
     {
         $assistantContent = $this->getAssistantContentBasedOnAstrologer($astrologerId);
         $userId = Auth::guard('api')->user()->id;
-        $user = User::where('id', $userId)->select(['name', 'birthDate', 'birthPlace'])->first();
 
         $assistantContent .= "\n[CRITICAL CHAT STYLE INSTRUCTION:
 1. You must respond exactly like a warm, empathetic, human Indian astrologer chatting on a messaging app. Do NOT sound like an AI assistant. Never mention being an AI, chatbot, or language model.
@@ -41,50 +40,104 @@ class ApiOpenAIService
 7. Respond in the same language the user uses (usually Simple Hindi or Hinglish).
 8. IMPORTANT: If you are a palmist, palm reading expert, or palmistry specialist, and the user has NOT uploaded/attached an image of their palm in this message, you MUST politely ask them to upload a clear photo of their palm first so you can read it. Do NOT make up, guess, or hallucinate palm line readings if no image is attached.]";
 
-        // Format the user data into the message
-        $userInfo = "mera name {$user->name}, mera date of birth {$user->birthDate}, aur mera place of birth is {$user->birthPlace}.";
-        $finalMessage = "{$userInfo} {$message}";
+        // Find the active conversation for this user and astrologer
+        $conversation = \Illuminate\Support\Facades\DB::table('ai_conversations')
+            ->where('user_id', $userId)
+            ->where('ai_astrologer_id', $astrologerId)
+            ->where('status', 'active')
+            ->first();
 
-        try {
-            $payload = [
-                'model' => $imageBase64 ? 'gpt-4o' : 'gpt-4',
-                'temperature' => 0.5,
-                'top_p' => 0.7,
-                'max_tokens' => 500,
-                'frequency_penalty' => 0,
-                'presence_penalty' => 0,
-            ];
+        if (!$conversation) {
+            $conversationId = (string) \Illuminate\Support\Str::uuid();
+            \Illuminate\Support\Facades\DB::table('ai_conversations')->insert([
+                'conversation_id' => $conversationId,
+                'user_id' => $userId,
+                'ai_astrologer_id' => $astrologerId,
+                'status' => 'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } else {
+            $conversationId = $conversation->conversation_id;
+        }
 
-            if ($imageBase64) {
-                // strip out metadata scheme if present
-                if (preg_match('/^data:image\/(\w+);base64,/', $imageBase64, $type)) {
-                    $imageBase64 = substr($imageBase64, strpos($imageBase64, ',') + 1);
+        // Check if first message in conversation to prepend user info
+        $isFirst = \Illuminate\Support\Facades\DB::table('ai_messages')
+            ->where('conversation_id', $conversationId)
+            ->count() == 0;
+
+        if ($isFirst) {
+            $user = User::where('id', $userId)->select(['name', 'birthDate', 'birthPlace'])->first();
+            $userInfo = "mera name {$user->name}, mera date of birth {$user->birthDate}, aur mera place of birth is {$user->birthPlace}.";
+            $messageContent = "{$userInfo} {$message}";
+        } else {
+            $messageContent = $message;
+        }
+
+        \Illuminate\Support\Facades\DB::table('ai_messages')->insert([
+            'conversation_id' => $conversationId,
+            'role' => 'user',
+            'content' => $messageContent,
+            'image' => $imageBase64,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $history = \Illuminate\Support\Facades\DB::table('ai_messages')
+            ->where('conversation_id', $conversationId)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        $messagesPayload = [
+            ['role' => 'system', 'content' => $assistantContent]
+        ];
+
+        $hasImage = false;
+        foreach ($history as $msg) {
+            if ($msg->image) {
+                $hasImage = true;
+                $imgData = $msg->image;
+                if (preg_match('/^data:image\/(\w+);base64,/', $imgData, $type)) {
+                    $imgData = substr($imgData, strpos($imgData, ',') + 1);
                 }
-                $assistantContent .= "\n[SYSTEM INSTRUCTION OVERRIDE: The user has attached an image of their palm. You are equipped with vision capabilities and can view the image. Please analyze their palm lines (Heart line, Life line, Head line, etc.) based on the image provided and provide a detailed palmistry reading. Ignore any previous instructions claiming you cannot see or analyze images.]";
-                $payload['messages'] = [
-                    ['role' => 'system', 'content' => $assistantContent],
-                    [
-                        'role' => 'user',
-                        'content' => [
-                            [
-                                'type' => 'text',
-                                'text' => $finalMessage
-                            ],
-                            [
-                                'type' => 'image_url',
-                                'image_url' => [
-                                    'url' => 'data:image/jpeg;base64,' . $imageBase64
-                                ]
+                $messagesPayload[] = [
+                    'role' => $msg->role,
+                    'content' => [
+                        [
+                            'type' => 'text',
+                            'text' => $msg->content
+                        ],
+                        [
+                            'type' => 'image_url',
+                            'image_url' => [
+                                'url' => 'data:image/jpeg;base64,' . $imgData
                             ]
                         ]
                     ]
                 ];
             } else {
-                $payload['messages'] = [
-                    ['role' => 'system', 'content' => $assistantContent],
-                    ['role' => 'user', 'content' => $finalMessage],
+                $messagesPayload[] = [
+                    'role' => $msg->role,
+                    'content' => $msg->content
                 ];
             }
+        }
+
+        if ($hasImage) {
+            $assistantContent .= "\n[SYSTEM INSTRUCTION OVERRIDE: The user has attached an image of their palm. You are equipped with vision capabilities and can view the image. Please analyze their palm lines (Heart line, Life line, Head line, etc.) based on the image provided and provide a detailed palmistry reading. Ignore any previous instructions claiming you cannot see or analyze images.]";
+            $messagesPayload[0]['content'] = $assistantContent;
+        }
+
+        try {
+            $payload = [
+                'model' => $hasImage ? 'gpt-4o' : 'gpt-4',
+                'temperature' => 0.5,
+                'top_p' => 0.7,
+                'max_tokens' => 500,
+                'frequency_penalty' => 0,
+                'presence_penalty' => 0,
+                'messages' => $messagesPayload,
+            ];
 
             $response = $this->client->post('https://api.openai.com/v1/chat/completions', [
                 'headers' => [
@@ -96,16 +149,19 @@ class ApiOpenAIService
 
             $data = json_decode($response->getBody(), true);
             $content = $data['choices'][0]['message']['content'];
- 
+
+            \Illuminate\Support\Facades\DB::table('ai_messages')->insert([
+                'conversation_id' => $conversationId,
+                'role' => 'assistant',
+                'content' => trim($content),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
             return trim($content);
-        } catch (RequestException $e) {
-            if ($e->getCode() == 429) {
-                $attempts++;
-                sleep(2);
-            } else {
-                \Log::error('Request error: ' . $e->getMessage());
-                return 'Error communicating with OpenAI API.';
-            }
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            \Log::error('Request error: ' . $e->getMessage());
+            return 'Error communicating with OpenAI API.';
         } catch (Exception $e) {
             \Log::error('General error: ' . $e->getMessage());
             return $e->getMessage();
@@ -114,20 +170,6 @@ class ApiOpenAIService
 
     public function askChatGPTMaster($message)
     {
-        // Rule Instructions
-
-        //     You are an expert astrologer.
-
-        // Rules:
-        // - Provide astrological insights strictly based on traditional astrological principles.
-        // - Give guidance or predictions ONLY for career, love, health, and finance.
-        // - Answer ONLY what is relevant to the user’s question.
-        // - Keep the response short, clear, and focused.
-        // - Do NOT add extra analysis, remedies, or predictions unless explicitly asked.
-        // - If a question goes beyond astrological knowledge, respond exactly with:
-        //   "This is beyond my limit as an astrologer."
-        // - Respond in Hinglish (simple Hindi + English).
-
         $assistantContent = AiAstrologer::where('type', 'master')->value('system_intruction');
         $assistantContent .= "\n[CRITICAL CHAT STYLE INSTRUCTION:
 1. You must respond exactly like a warm, empathetic, human Indian astrologer chatting on a messaging app. Do NOT sound like an AI assistant. Never mention being an AI, chatbot, or language model.
@@ -138,8 +180,65 @@ class ApiOpenAIService
 6. Always end your response with a short, relevant question to encourage the user to continue the conversation (e.g., 'Kya aap iske baare mein aur jaanna chahte hain?').
 7. Respond in the same language the user uses (usually Simple Hindi or Hinglish).]";
 
-        $user = Auth::guard('api')->user();
-        $userInfo = "Name: {$user->name}, DOB: {$user->birthDate}, Place: {$user->birthPlace}";
+        $userId = Auth::guard('api')->user()->id;
+        $astrologerId = 0; // 0 for Master AI
+
+        $conversation = \Illuminate\Support\Facades\DB::table('ai_conversations')
+            ->where('user_id', $userId)
+            ->where('ai_astrologer_id', $astrologerId)
+            ->where('status', 'active')
+            ->first();
+
+        if (!$conversation) {
+            $conversationId = (string) \Illuminate\Support\Str::uuid();
+            \Illuminate\Support\Facades\DB::table('ai_conversations')->insert([
+                'conversation_id' => $conversationId,
+                'user_id' => $userId,
+                'ai_astrologer_id' => $astrologerId,
+                'status' => 'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } else {
+            $conversationId = $conversation->conversation_id;
+        }
+
+        // Check if first message in conversation to prepend user info
+        $isFirst = \Illuminate\Support\Facades\DB::table('ai_messages')
+            ->where('conversation_id', $conversationId)
+            ->count() == 0;
+
+        if ($isFirst) {
+            $user = Auth::guard('api')->user();
+            $userInfo = "Name: {$user->name}, DOB: {$user->birthDate}, Place: {$user->birthPlace}";
+            $messageContent = "User details (reference only): {$userInfo}\nQuestion: {$message}";
+        } else {
+            $messageContent = $message;
+        }
+
+        \Illuminate\Support\Facades\DB::table('ai_messages')->insert([
+            'conversation_id' => $conversationId,
+            'role' => 'user',
+            'content' => $messageContent,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $history = \Illuminate\Support\Facades\DB::table('ai_messages')
+            ->where('conversation_id', $conversationId)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        $messagesPayload = [
+            ['role' => 'system', 'content' => $assistantContent]
+        ];
+
+        foreach ($history as $msg) {
+            $messagesPayload[] = [
+                'role' => $msg->role,
+                'content' => $msg->content
+            ];
+        }
 
         try {
             $response = $this->client->post('https://api.openai.com/v1/chat/completions', [
@@ -148,22 +247,29 @@ class ApiOpenAIService
                     'Content-Type' => 'application/json',
                 ],
                 'json' => [
-                    'model' => 'gpt-4.1',
-                    'messages' => [
-                        ['role' => 'system', 'content' => $assistantContent],
-                        ['role' => 'user', 'content' => "User details (reference only): {$userInfo}"],
-                        ['role' => 'user', 'content' => "Question: {$message}"],
-                    ],
+                    'model' => 'gpt-4',
+                    'messages' => $messagesPayload,
                     'temperature' => 0.2,
                     'top_p' => 0.5,
                     'max_tokens' => 500,
                 ],
             ]);
 
-            return trim(
-                json_decode($response->getBody(), true)['choices'][0]['message']['content']
-            );
-        } catch (\Exception $e) {
+            $content = json_decode($response->getBody(), true)['choices'][0]['message']['content'];
+
+            \Illuminate\Support\Facades\DB::table('ai_messages')->insert([
+                'conversation_id' => $conversationId,
+                'role' => 'assistant',
+                'content' => trim($content),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return trim($content);
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            \Log::error('Request error: ' . $e->getMessage());
+            return 'Error communicating with OpenAI API.';
+        } catch (Exception $e) {
             \Log::error('AI Error: ' . $e->getMessage());
             return 'AI service temporarily unavailable.';
         }
