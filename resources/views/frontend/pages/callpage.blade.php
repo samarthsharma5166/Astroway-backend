@@ -671,19 +671,47 @@ $call_type = request()->query('call_type');
                 const roomID = "{{ $callrequest->id }}";
                 const isVideoCall = "{{ $call_type }}" == "11";
 
-                if (!appID) throw new Error('Zegocloud App ID is missing');
-                if (!serverSecret || serverSecret === '') throw new Error('Zegocloud Server Secret is missing or invalid');
-                if (!roomID) throw new Error('Room ID is missing');
+                console.log("Zegocloud initializing with parameters:", {
+                    appID: appID,
+                    serverSecretLength: serverSecret ? serverSecret.length : 0,
+                    userID: userID,
+                    userName: userName,
+                    roomID: roomID
+                });
+
+                const parsedAppID = parseInt(appID);
+                if (isNaN(parsedAppID) || parsedAppID <= 0) {
+                    throw new Error('Zegocloud App ID is missing or invalid. Please check your admin settings.');
+                }
+                if (!serverSecret || serverSecret.trim() === '' || serverSecret === 'false') {
+                    throw new Error('Zegocloud Server Secret is missing or invalid. Please check your admin settings.');
+                }
+                if (!roomID || roomID.trim() === '') {
+                    throw new Error('Room ID is missing.');
+                }
+                if (!userID || userID.trim() === '') {
+                    throw new Error('User ID is missing. Please log in again.');
+                }
+                if (!userName || userName.trim() === '') {
+                    throw new Error('User name is missing. Please log in again.');
+                }
 
                 const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
-                    parseInt(appID),
+                    parsedAppID,
                     serverSecret,
                     roomID,
                     userID,
                     userName
                 );
 
+                if (!kitToken) {
+                    throw new Error('Failed to generate Zegocloud Kit Token.');
+                }
+
                 zegoUIKit = ZegoUIKitPrebuilt.create(kitToken);
+                if (!zegoUIKit) {
+                    throw new Error('Failed to create Zegocloud UIKit instance (returned undefined).');
+                }
 
                 const config = {
                     container: document.querySelector("#zegocloudUIKitContainer"),
