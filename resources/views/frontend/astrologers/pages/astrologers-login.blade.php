@@ -461,39 +461,42 @@ function editMobileNumber() {
 </script>
 
   <script>
-    document.getElementById('googleLoginBtn').addEventListener('click', async function () {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        firebase.auth().signInWithPopup(provider)
-        .then(async (result) => {
-            const idToken = await result.user.getIdToken();
+    var googleLoginBtn = document.getElementById('googleLoginBtn');
+    if (googleLoginBtn) {
+        googleLoginBtn.addEventListener('click', async function () {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            firebase.auth().signInWithPopup(provider)
+            .then(async (result) => {
+                const idToken = await result.user.getIdToken();
 
-            // Send token to backend
-            console.log(" response 1539 :: ", result.user)
+                // Send token to backend
+                console.log(" response 1539 :: ", result.user)
 
-            $.ajax({
-                url: '{{ route("front.verifyOTLAstro") }}',
-                method: 'POST',
-                data: {
-                    fromWeb: 1,
-                    isGoogleLogin: 1,
-                    email: result.user?.email,
-                    name: result.user?.displayName
-                },
-                success: function (res) {
-                    console.log(" res :: ", res)
-                    if (res.status == 200) {
-                        location.reload();
-                    } else {
-                        toastr.error(res.message);
+                $.ajax({
+                    url: '{{ route("front.verifyOTLAstro") }}',
+                    method: 'POST',
+                    data: {
+                        fromWeb: 1,
+                        isGoogleLogin: 1,
+                        email: result.user?.email,
+                        name: result.user?.displayName
+                    },
+                    success: function (res) {
+                        console.log(" res :: ", res)
+                        if (res.status == 200) {
+                            location.reload();
+                        } else {
+                            toastr.error(res.message);
+                        }
+                    },
+                    error: function (e) {
+                        toastr.error(e?.responseJSON?.message);
                     }
-                },
-                error: function (e) {
-                    toastr.error(e?.responseJSON?.message);
-                }
+                });
+            })
+            .catch((error) => {
+                toastr.error(error?.responseJSON?.message);
             });
-        })
-        .catch((error) => {
-            toastr.error(error?.responseJSON?.message);
         });
-    });
+    }
 </script>
