@@ -734,6 +734,10 @@ $apikey = DB::table('systemflag')->where('name', 'googleMapApiKey')->first();
     });
 
     function initializeAutocomplete(inputId) {
+        if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+            console.warn("Google Maps Places API not loaded. Autocomplete disabled.");
+            return;
+        }
         var input = document.getElementById(inputId);
         var autocomplete = new google.maps.places.Autocomplete(input);
         var originLatitude = document.getElementById('latitude');
@@ -761,7 +765,9 @@ $apikey = DB::table('systemflag')->where('name', 'googleMapApiKey')->first();
         });
     }
     // Initialize when the page loads
-    initializeAutocomplete('BirthPlace');
+    if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+        initializeAutocomplete('BirthPlace');
+    }
 </script>
 <script>
     @if(authcheck())
