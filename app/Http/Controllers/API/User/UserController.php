@@ -648,7 +648,8 @@ dd('hello');
                 if ($id) {
                     $isChatRequest = DB::table('chatrequest')->where('userId', $id[0]->id)->where('chatStatus', '=', 'Completed')->first();
                     $isCallRequest = DB::table('callrequest')->where('userId', $id[0]->id)->where('callStatus', '=', 'Completed')->first();
-                    if ($isChatRequest || $isCallRequest) {
+                    $isAiChatRequest = DB::table('ai_chat_histories')->where('user_id', $id[0]->id)->first();
+                    if ($isChatRequest || $isCallRequest || $isAiChatRequest) {
                         $isFreeAvailable = false;
                     } else {
                         $isFreeAvailable = true;

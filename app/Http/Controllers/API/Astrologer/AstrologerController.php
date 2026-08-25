@@ -1590,7 +1590,8 @@ class AstrologerController extends Controller
                 if ($req->userId) {
                     $isChatRequest = DB::table('chatrequest')->where('userId', $req->userId)->where('chatStatus', '=', 'Completed')->first();
                     $isCallRequest = DB::table('callrequest')->where('userId', $req->userId)->where('callStatus', '=', 'Completed')->first();
-                    if ($isChatRequest || $isCallRequest) {
+                    $isAiChatRequest = DB::table('ai_chat_histories')->where('user_id', $req->userId)->first();
+                    if ($isChatRequest || $isCallRequest || $isAiChatRequest) {
                         $isFreeAvailable = false;
                     } else {
                         $isFreeAvailable = true;
@@ -2262,7 +2263,8 @@ class AstrologerController extends Controller
                     if ($req->userId) {
                         $isChatRequest = DB::table('chatrequest')->where('userId', $req->userId)->where('chatStatus', '=', 'Completed')->first();
                         $isCallRequest = DB::table('callrequest')->where('userId', $req->userId)->where('callStatus', '=', 'Completed')->first();
-                        if ($isChatRequest || $isCallRequest) {
+                        $isAiChatRequest = DB::table('ai_chat_histories')->where('user_id', $req->userId)->first();
+                        if ($isChatRequest || $isCallRequest || $isAiChatRequest) {
                             $isFreeAvailable = false;
                         } else {
                             $isFreeAvailable = true;
@@ -2429,7 +2431,8 @@ class AstrologerController extends Controller
                 $isFreeChat = DB::table('systemflag')->where('name', 'FirstFreeChat')->first();
                 if ($isFreeChat && $isFreeChat->value == 1 && $req->userId) {
                     $hasChatOrCall = DB::table('chatrequest')->where('userId', $req->userId)->where('chatStatus', 'Completed')->exists() ||
-                        DB::table('callrequest')->where('userId', $req->userId)->where('callStatus', 'Completed')->exists();
+                        DB::table('callrequest')->where('userId', $req->userId)->where('callStatus', 'Completed')->exists() ||
+                        DB::table('ai_chat_histories')->where('user_id', $req->userId)->exists();
                     $isFreeAvailable = !$hasChatOrCall;
                 }
 
@@ -3146,7 +3149,8 @@ class AstrologerController extends Controller
                     if ($user->id) {
                         $isChatRequest = DB::table('chatrequest')->where('userId', $user->id)->where('chatStatus', '=', 'Completed')->first();
                         $isCallRequest = DB::table('callrequest')->where('userId', $user->id)->where('callStatus', '=', 'Completed')->first();
-                        $isFreeAvailable = !($isChatRequest || $isCallRequest);
+                        $isAiChatRequest = DB::table('ai_chat_histories')->where('user_id', $user->id)->first();
+                        $isFreeAvailable = !($isChatRequest || $isCallRequest || $isAiChatRequest);
                     }
                 } else {
                     $isFreeAvailable = false;
