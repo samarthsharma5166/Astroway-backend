@@ -883,7 +883,7 @@ $apikey = DB::table('systemflag')->where('name', 'googleMapApiKey')->first();
 
 
     $(document).ready(function() {
-        $('#intakeBtn').click(function(e) {
+        $('#intakeForm').submit(function(e) {
 
             e.preventDefault();
 
