@@ -667,9 +667,13 @@ $call_type = request()->query('call_type');
                 const appID = "{{ systemflag('zegoAppId') }}";
                 const serverSecret = "{{ systemflag('zegoServerSecret') }}";
                 const userID = "{{ $userId }}";
-                const userName = "{{authcheck()['name']}}";
+                let userName = "{{ authcheck() ? (authcheck()['name'] ?? '') : '' }}";
                 const roomID = "{{ $callrequest->id }}";
                 const isVideoCall = "{{ $call_type }}" == "11";
+
+                if (!userName || userName.trim() === '') {
+                    userName = "User_" + userID;
+                }
 
                 console.log("Zegocloud initializing with parameters:", {
                     appID: appID,
@@ -691,9 +695,6 @@ $call_type = request()->query('call_type');
                 }
                 if (!userID || userID.trim() === '') {
                     throw new Error('User ID is missing. Please log in again.');
-                }
-                if (!userName || userName.trim() === '') {
-                    throw new Error('User name is missing. Please log in again.');
                 }
 
                 const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
