@@ -1035,7 +1035,7 @@ function editMobileNumber() {
 
 
 <script>
-    var firebaseConfig = {
+    var firebaseConfigDb = {
         apiKey: "{{ $apiKey->value }}",
         databaseURL: "{{ $databaseURL->value }}",
         authDomain: "{{ $authDomain->value }}",
@@ -1046,10 +1046,10 @@ function editMobileNumber() {
         measurementId: "{{ $measurementId->value }}"
     };
 
-    if (firebaseConfig.apiKey && firebaseConfig.apiKey.trim() !== "") {
+    if (firebaseConfigDb.apiKey && firebaseConfigDb.apiKey.trim() !== "") {
         try {
             if (firebase.apps.length === 0) {
-                firebase.initializeApp(firebaseConfig);
+                firebase.initializeApp(firebaseConfigDb);
             }
         } catch (e) {
             console.error("Firebase init error: ", e);
