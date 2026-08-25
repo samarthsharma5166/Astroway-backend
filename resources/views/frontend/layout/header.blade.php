@@ -1034,13 +1034,6 @@ function editMobileNumber() {
 @endif
 
 
-<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/7.9.1/firebase-storage.js"></script>
-
-
-
 <script>
     var firebaseConfig = {
         apiKey: "{{ $apiKey->value }}",
@@ -1053,7 +1046,15 @@ function editMobileNumber() {
         measurementId: "{{ $measurementId->value }}"
     };
 
-    firebase.initializeApp(firebaseConfig);
+    if (firebaseConfig.apiKey && firebaseConfig.apiKey.trim() !== "") {
+        try {
+            if (firebase.apps.length === 0) {
+                firebase.initializeApp(firebaseConfig);
+            }
+        } catch (e) {
+            console.error("Firebase init error: ", e);
+        }
+    }
 </script>
 
 
