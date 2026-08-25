@@ -495,7 +495,8 @@ function editMobileNumber() {
                 });
             })
             .catch((error) => {
-                toastr.error(error?.responseJSON?.message);
+                console.error("Google login error: ", error);
+                toastr.error(error.message || "Google Login failed.");
             });
         });
     }
