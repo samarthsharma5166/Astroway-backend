@@ -699,6 +699,7 @@
                                             <input type="button" id="sendOtpBtn" value="Send OTP" class="font-weight-bold ml-0 w-100 btn btn-chat valid" aria-invalid="false" >
                                         </div>
                                     </div>
+                                    <div id="recaptcha-container" class="mt-2 d-flex justify-content-center"></div>
                                     <div class="container mt-3 mb-3">
                                         <div class="row">
                                             {{-- <div class="col-md-6">
