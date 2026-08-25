@@ -214,23 +214,26 @@ public function addCallRequest(Request $req)
             ], 400);
         }
 
-        $callDurationMinutesforcharge = $req->call_duration / 60;
-        $astrologerCharge = DB::table('astrologers')->where('id', $req['astrologerId'])->value('videoCallRate');
-        if ($astrologerEmergency) {
-            $astrologerCharge = DB::table('astrologers')->where('id', $req['astrologerId'])->value('emergency_audio_charge');
-            if ($req['call_type'] == 11) {
-                $astrologerCharge = DB::table('astrologers')->where('id', $req['astrologerId'])->value('emergency_video_charge');
+        $isFreeSession = ($isFreeAvailable && ($req['isFreeSession'] ?? 0)) ? 1 : 0;
+        if (!$isFreeSession) {
+            $callDurationMinutesforcharge = $req->call_duration / 60;
+            $astrologerCharge = DB::table('astrologers')->where('id', $req['astrologerId'])->value('videoCallRate');
+            if ($astrologerEmergency) {
+                $astrologerCharge = DB::table('astrologers')->where('id', $req['astrologerId'])->value('emergency_audio_charge');
+                if ($req['call_type'] == 11) {
+                    $astrologerCharge = DB::table('astrologers')->where('id', $req['astrologerId'])->value('emergency_video_charge');
+                }
             }
-        }
 
-        $total_charge = $astrologerCharge * $callDurationMinutesforcharge;
-        if ($total_charge > $walletAmount) {
-            return response()->json([
-                'recordList' => [
-                    'message' => 'Insufficient Wallet Balance',
-                ],
-                'status' => 400,
-            ], 400);
+            $total_charge = $astrologerCharge * $callDurationMinutesforcharge;
+            if ($total_charge > $walletAmount) {
+                return response()->json([
+                    'recordList' => [
+                        'message' => 'Insufficient Wallet Balance',
+                    ],
+                    'status' => 400,
+                ], 400);
+            }
         }
 
         $apiKey = DB::table('systemflag')->where('name', 'ExotelKey')->pluck('value')->first();
@@ -274,7 +277,7 @@ public function addCallRequest(Request $req)
             'astrologerId' => $req['astrologerId'],
             'userId' => $id,
             'callStatus' => 'Pending',
-            'isFreeSession' => $req['isFreeSession'] ?? 0,
+            'isFreeSession' => $isFreeSession,
             'call_type' => $req['call_type'],
             'call_duration' => $req['call_duration'],
             'call_method' => $call_method,

@@ -81,19 +81,22 @@ class ChatRequestController extends Controller
                         'status' => 400,
                 ], 400);
             }
-        $callDurationMinutesforcharge = $req->call_duration / 60;
-             $astrologerCharge=DB::table('astrologers')->where('id',$req['astrologerId'])->pluck('charge')->first();
-           if($astrologerEmergency){
-              $astrologerCharge=DB::table('astrologers')->where('id',$req['astrologerId'])->pluck('emergency_chat_charge')->first();
-           }
-           $total_charge = $astrologerCharge * $callDurationMinutesforcharge;
-            if ($total_charge > $walletAmount){
-                 return response()->json([
-                    'recordList' => [
-                        'message' => 'Insufficient Wallet Balance',
-                    ],
+            $isFreeSession = ($isFreeAvailable && $req->isFreeSession) ? 1 : 0;
+            if (!$isFreeSession) {
+                $chatDurationMinutesforcharge = $req->chat_duration / 60;
+                $astrologerCharge = DB::table('astrologers')->where('id', $req['astrologerId'])->pluck('charge')->first();
+                if ($astrologerEmergency) {
+                    $astrologerCharge = DB::table('astrologers')->where('id', $req['astrologerId'])->pluck('emergency_chat_charge')->first();
+                }
+                $total_charge = $astrologerCharge * $chatDurationMinutesforcharge;
+                if ($total_charge > $walletAmount) {
+                    return response()->json([
+                        'recordList' => [
+                            'message' => 'Insufficient Wallet Balance',
+                        ],
                         'status' => 400,
-                ], 400);
+                    ], 400);
+                }
             }
 
 
@@ -134,7 +137,7 @@ class ChatRequestController extends Controller
                 'userId' => $id,
                 'chatStatus' => 'Pending',
                 'senderId' => '',
-                'isFreeSession' => $req->isFreeSession,
+                'isFreeSession' => $isFreeSession,
 				'chat_duration' => $req->chat_duration,
 				'is_emergency' => $astrologerEmergency ?? 0,
                 'created_at' => Carbon::now(),
