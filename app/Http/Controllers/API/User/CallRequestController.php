@@ -176,7 +176,8 @@ public function addCallRequest(Request $req)
             if ($id) {
                 $isChatRequest = DB::table('chatrequest')->where('userId', $id)->where('chatStatus', '=', 'Completed')->first();
                 $isCallRequest = DB::table('callrequest')->where('userId', $id)->where('callStatus', '=', 'Completed')->first();
-                $isFreeAvailable = !($isChatRequest || $isCallRequest);
+                $isAiChatRequest = DB::table('ai_chat_histories')->where('user_id', $id)->first();
+                $isFreeAvailable = !($isChatRequest || $isCallRequest || $isAiChatRequest);
             }
         } else {
             $isFreeAvailable = false;
