@@ -6,18 +6,29 @@ $kernel->bootstrap();
 
 use Illuminate\Support\Facades\DB;
 use App\Models\Horoscope;
+use Carbon\Carbon;
 
-$key = DB::table('systemflag')->where('name', 'vedicAstroAPI')->value('value');
-echo 'API Key: ' . ($key ? $key : 'EMPTY') . PHP_EOL;
-echo 'DB Row Count: ' . Horoscope::count() . PHP_EOL;
+echo 'Server Date: ' . Carbon::now()->format('Y-m-d') . PHP_EOL;
 
-if ($key) {
-    $url = 'https://api.vedicastroapi.com/v3-json/prediction/daily-moon?zodiac=1&date=' . date('d/m/Y') . '&show_same=true&lang=en&api_key=' . $key;
-    echo "Calling URL: $url" . PHP_EOL;
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    $res = curl_exec($ch);
-    echo 'API Response: ' . $res . PHP_EOL;
-    curl_close($ch);
+$records = DB::table('horoscopes')
+    ->select('type', 'langcode', 'zodiac', 'date', 'start_date', 'end_date')
+    ->orderBy('created_at', 'DESC')
+    ->limit(10)
+    ->get();
+
+echo "--- Last 10 Horoscope Entries ---" . PHP_EOL;
+foreach ($records as $r) {
+    echo "Type: {$r->type} | Lang: {$r->langcode} | Zodiac: {$r->zodiac} | Date: {$r->date} | Start: {$r->start_date} | End: {$r->end_date}" . PHP_EOL;
+}
+
+echo "--- Unique dates in DB ---" . PHP_EOL;
+$dates = DB::table('horoscopes')->select('date')->distinct()->orderBy('date', 'DESC')->limit(5)->pluck('date');
+foreach ($dates as $d) {
+    echo "Date: $d" . PHP_EOL;
+}
+
+echo "--- Unique types in DB ---" . PHP_EOL;
+$types = DB::table('horoscopes')->select('type')->distinct()->pluck('type');
+foreach ($types as $t) {
+    echo "Type: $t" . PHP_EOL;
 }
