@@ -4,10 +4,10 @@ $app = require_once __DIR__.'/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-use Illuminate\Support\Facades\DB;
+$req = new \Illuminate\Http\Request();
+$req->replace(['horoscopeSignId' => 1, 'langcode' => 'en']);
+$controller = new \App\Http\Controllers\API\User\DailyHoroscopeController();
+$response = $controller->getDailyHoroscope($req);
 
-$signs = DB::table('hororscope_signs')->select('id', 'name')->get();
-echo "--- hororscope_signs Table ---" . PHP_EOL;
-foreach ($signs as $s) {
-    echo "ID: {$s->id} | Name: '{$s->name}'" . PHP_EOL;
-}
+echo "Controller Response:" . PHP_EOL;
+echo json_encode(json_decode($response->getContent()), JSON_PRETTY_PRINT) . PHP_EOL;
