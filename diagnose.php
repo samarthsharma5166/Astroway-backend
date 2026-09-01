@@ -5,31 +5,20 @@ $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
-use DateTime;
+use Illuminate\Support\Facades\Schema;
 
-// Calculate current week range exactly like DailyHoroscopeController
-$currentDate = new DateTime();
-$currentDate->setISODate((int)$currentDate->format('o'), (int)$currentDate->format('W'), 1);
-$startOfWeekFormatted = $currentDate->format('Y-m-d');
-$currentDate->modify('+6 days');
-$endOfWeekFormatted = $currentDate->format('Y-m-d');
+echo "--- Schema for ai_messages ---" . PHP_EOL;
+$columns = DB::select("DESCRIBE ai_messages");
+foreach ($columns as $col) {
+    echo "Field: {$col->Field} | Type: {$col->Type} | Null: {$col->Null}" . PHP_EOL;
+}
 
-echo "Controller Expected Start of Week: $startOfWeekFormatted" . PHP_EOL;
-echo "Controller Expected End of Week: $endOfWeekFormatted" . PHP_EOL;
-
-// Fetch any weekly horoscopes
-$weeklyInDb = DB::table('horoscopes')
-    ->where('type', 2) // WEEKLY_HORSCOPE
-    ->orderBy('created_at', 'DESC')
-    ->limit(5)
-    ->get();
-
-echo "--- Weekly Horoscopes in DB ---" . PHP_EOL;
-if ($weeklyInDb->isEmpty()) {
-    echo "No weekly horoscopes found in DB!" . PHP_EOL;
+// Check recent Laravel error logs
+echo "--- Last 20 lines of Laravel Log ---" . PHP_EOL;
+$logFile = storage_path('logs/laravel.log');
+if (file_exists($logFile)) {
+    $lines = file($logFile);
+    echo implode("", array_slice($lines, -20));
 } else {
-    foreach ($weeklyInDb as $w) {
-        echo "Zodiac: {$w->zodiac} | Date: {$w->date} | Start Date: {$w->start_date} | End Date: {$w->end_date} | Lang: {$w->langcode}" . PHP_EOL;
-    }
+    echo "No log file found." . PHP_EOL;
 }
