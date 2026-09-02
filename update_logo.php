@@ -6,6 +6,7 @@ $kernel->bootstrap();
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\File;
 
 echo "=== Updating Rudra Gram Logo on Server ===" . PHP_EOL;
 
@@ -17,75 +18,78 @@ if (!file_exists($sourceLogo)) {
 
 $logoContent = file_get_contents($sourceLogo);
 
-// 1. Ensure target directories exist
+// 1. Ensure target storage and frontend directories exist
 $dirs = [
-    __DIR__ . '/public/storage/images',
-    __DIR__ . '/storage/app/public/images',
-    __DIR__ . '/public/frontend/astrowaycdn/dashaspeaks/web/content/astroway/images',
-    __DIR__ . '/public/assets-pg/imgs',
+    public_path('storage/images'),
+    storage_path('app/public/images'),
+    public_path('frontend/astrowaycdn/dashaspeaks/web/content/astroway/images'),
+    public_path('assets-pg/imgs'),
 ];
 foreach ($dirs as $dir) {
     if (!is_dir($dir)) {
-        mkdir($dir, 0775, true);
+        @mkdir($dir, 0775, true);
     }
 }
 
 // 2. Overwrite known static/cached files
-$filesToOverwrite = [
-    __DIR__ . '/public/storage/images/AdminLogo1732085016.png',
-    __DIR__ . '/public/storage/images/PartnerLogo1759135328.png',
-    __DIR__ . '/storage/app/public/images/AdminLogo1732085016.png',
-    __DIR__ . '/storage/app/public/images/PartnerLogo1759135328.png',
-    __DIR__ . '/public/frontend/astrowaycdn/dashaspeaks/web/content/astroway/images/astroway-logo.png',
+$knownFiles = [
+    public_path('frontend/astrowaycdn/dashaspeaks/web/content/astroway/images/astroway-logo.png'),
+    public_path('assets-pg/imgs/logo-for-site.png'),
 ];
-
-foreach ($filesToOverwrite as $f) {
-    file_put_contents($f, $logoContent);
-    echo "Overwritten file: {$f}" . PHP_EOL;
+foreach ($knownFiles as $f) {
+    @file_put_contents($f, $logoContent);
+    echo "Overwritten static file: {$f}" . PHP_EOL;
 }
 
-// Overwrite all AdminLogo* and PartnerLogo* files in storage
-foreach (glob(__DIR__ . '/public/storage/images/AdminLogo*') as $f) {
-    file_put_contents($f, $logoContent);
-    echo "Overwritten: {$f}" . PHP_EOL;
-}
-foreach (glob(__DIR__ . '/public/storage/images/PartnerLogo*') as $f) {
-    file_put_contents($f, $logoContent);
-    echo "Overwritten: {$f}" . PHP_EOL;
-}
-foreach (glob(__DIR__ . '/storage/app/public/images/AdminLogo*') as $f) {
-    file_put_contents($f, $logoContent);
-    echo "Overwritten: {$f}" . PHP_EOL;
-}
-foreach (glob(__DIR__ . '/storage/app/public/images/PartnerLogo*') as $f) {
-    file_put_contents($f, $logoContent);
-    echo "Overwritten: {$f}" . PHP_EOL;
+// Overwrite all existing AdminLogo* and PartnerLogo* files in public/storage and storage/app/public
+$patterns = [
+    public_path('storage/images/AdminLogo*'),
+    public_path('storage/images/PartnerLogo*'),
+    storage_path('app/public/images/AdminLogo*'),
+    storage_path('app/public/images/PartnerLogo*'),
+];
+foreach ($patterns as $pat) {
+    foreach (glob($pat) as $f) {
+        @file_put_contents($f, $logoContent);
+        echo "Overwritten existing logo file: " . basename($f) . PHP_EOL;
+    }
 }
 
-// 3. Check systemflag database values and update files referenced in DB
+// 3. Create fresh timestamped filenames to completely bust browser cache
+$timestamp = time();
+$newAdminLogoName = 'AdminLogo' . $timestamp . '.png';
+$newPartnerLogoName = 'PartnerLogo' . $timestamp . '.png';
+
+$newAdminPathPublic = public_path('storage/images/' . $newAdminLogoName);
+$newAdminPathStorage = storage_path('app/public/images/' . $newAdminLogoName);
+@file_put_contents($newAdminPathPublic, $logoContent);
+@file_put_contents($newAdminPathStorage, $logoContent);
+
+$newPartnerPathPublic = public_path('storage/images/' . $newPartnerLogoName);
+$newPartnerPathStorage = storage_path('app/public/images/' . $newPartnerLogoName);
+@file_put_contents($newPartnerPathPublic, $logoContent);
+@file_put_contents($newPartnerPathStorage, $logoContent);
+
+echo "Created new cache-busted logo files: {$newAdminLogoName} and {$newPartnerLogoName}" . PHP_EOL;
+
+// 4. Update the systemflag database records with the new files
 try {
-    $adminLogoFlag = DB::table('systemflag')->where('name', 'AdminLogo')->first();
-    if ($adminLogoFlag && !empty($adminLogoFlag->value)) {
-        echo "Current AdminLogo DB flag: {$adminLogoFlag->value}" . PHP_EOL;
-        $dbPath1 = __DIR__ . '/public/' . ltrim($adminLogoFlag->value, '/');
-        $dbPath2 = __DIR__ . '/' . ltrim($adminLogoFlag->value, '/');
-        @file_put_contents($dbPath1, $logoContent);
-        @file_put_contents($dbPath2, $logoContent);
-    }
+    // Update AdminLogo
+    $affectedAdmin = DB::table('systemflag')
+        ->where('name', 'AdminLogo')
+        ->update(['value' => 'public/storage/images/' . $newAdminLogoName]);
+    echo "Updated AdminLogo in systemflag table (rows affected: {$affectedAdmin})" . PHP_EOL;
 
-    $partnerLogoFlag = DB::table('systemflag')->where('name', 'PartnerLogo')->first();
-    if ($partnerLogoFlag && !empty($partnerLogoFlag->value)) {
-        echo "Current PartnerLogo DB flag: {$partnerLogoFlag->value}" . PHP_EOL;
-        $dbPath1 = __DIR__ . '/public/' . ltrim($partnerLogoFlag->value, '/');
-        $dbPath2 = __DIR__ . '/' . ltrim($partnerLogoFlag->value, '/');
-        @file_put_contents($dbPath1, $logoContent);
-        @file_put_contents($dbPath2, $logoContent);
-    }
+    // Update PartnerLogo
+    $affectedPartner = DB::table('systemflag')
+        ->where('name', 'PartnerLogo')
+        ->update(['value' => 'public/storage/images/' . $newPartnerLogoName]);
+    echo "Updated PartnerLogo in systemflag table (rows affected: {$affectedPartner})" . PHP_EOL;
 } catch (\Exception $e) {
-    echo "DB notice: " . $e->getMessage() . PHP_EOL;
+    echo "Database error: " . $e->getMessage() . PHP_EOL;
 }
 
-// 4. Clear all caches
+// 5. Clear all Laravel caches
 Artisan::call('optimize:clear');
-echo "Caches cleared successfully!" . PHP_EOL;
-echo "=== Rudra Gram Logo update complete! ===" . PHP_EOL;
+echo "Laravel caches cleared (optimize:clear)!" . PHP_EOL;
+echo "=== Rudra Gram Logo successfully deployed! ===" . PHP_EOL;
